@@ -7,7 +7,7 @@ long_description = (this_directory / "README.md").read_text(encoding="utf-8")
 
 setup(
     name="freebooks",
-    version="0.1.1",
+    version="0.1.2",
     author="Leshawn Rice",
     author_email="leshawn.rice@yahoo.com",
     description=(
