@@ -12,16 +12,16 @@ FreeBooks is a command-line tool for converting Audible AAX files into common au
 
 ## Prerequisites
 
-Before installing or running FreeBooks, ensure the following executables are **installed under** `/usr/local/bin` **and** are executable:
+Before installing or running FreeBooks, ensure the following executables are **installed under** `/usr/bin` **and** are executable:
 
-- `/usr/local/bin/ffmpeg`  
-- `/usr/local/bin/awk`  
-- `/usr/local/bin/grep`  
+- `/usr/bin/ffmpeg`  
+- `/usr/bin/awk`  
+- `/usr/bin/grep`  
 
 You can verify each is on your `$PATH` and executable:
 
 ```bash
-ls -l /usr/local/bin/ffmpeg /usr/local/bin/awk /usr/local/bin/grep
+ls -l /usr/bin/ffmpeg /usr/bin/awk /usr/bin/grep
 ```
 
 ## Installation

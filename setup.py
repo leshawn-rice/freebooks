@@ -12,7 +12,7 @@ setup(
     author_email="leshawn.rice@yahoo.com",
     description=(
         "Convert Audible AAX to common audio formats "
-        "(requires ffmpeg, awk, grep installed in /usr/local/bin)."
+        "(requires ffmpeg, awk, grep installed in /usr/bin)."
     ),
     long_description=long_description,
     long_description_content_type="text/markdown",
