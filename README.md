@@ -93,4 +93,10 @@ pip install -e .[dev]
 
 ## License
 
-MIT License. See [LICENSE](LICENSE) for details.
+This project is licensed under the **PolyForm Noncommercial License 1.0.0**.  
+You may use, copy, modify, and distribute the code for **non-commercial** purposes only.  
+
+Commercial use of the **bundled RainbowCrack** binary (in `freebooks/aax_tables/rcrack`) is **prohibited** unless you obtain a separate commercial license from the RainbowCrack authors.
+
+For full license text, see [LICENSE](LICENSE).  
+For RainbowCrack licensing details, see `freebooks/aax_tables/README.md`.

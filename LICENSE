@@ -1,0 +1,46 @@
+PolyForm Noncommercial License 1.0.0
+
+Copyright (c) 2025 Leshawn Rice
+
+This PolyForm Noncommercial License 1.0.0 (“License”) applies to all files in this
+repository, except where a different license is explicitly stated.
+
+1. Definitions
+   - “Licensor” means the copyright owner(s) or entity distributing the Software.
+   - “You” (or “Licensee”) means any person or entity exercising permissions granted
+     by this License.
+   - “Software” means the original work of authorship, including source code,
+     binaries, and documentation, that is distributed under this License.
+
+2. Grant of Rights
+   You may use, copy, modify, and distribute the Software for **non-commercial**
+   purposes only.
+
+3. Commercial Use
+   Any use of the Software (including Redistributed or Modified versions) in
+   connection with any commercial endeavor—i.e., one intended for or directed
+   toward commercial advantage or monetary compensation—is **strictly prohibited**
+   unless you have obtained a separate commercial license from the Licensor.
+
+4. Attribution
+   You must retain all copyright, patent, trademark, and attribution notices
+   present in the Software.
+
+5. Disclaimer of Warranty
+   THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
+
+6. Limitation of Liability
+   IN NO EVENT SHALL THE LICENSOR BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+   SOFTWARE.
+
+7. Third-Party Components
+   The bundled RainbowCrack binary remains under its original “non-commercial”
+   licensing terms. Commercial use of that component requires a license from the
+   original RainbowCrack authors.
+
+For the full text and more details, see  
+https://polyformproject.org/licenses/noncommercial/1.0.0/
