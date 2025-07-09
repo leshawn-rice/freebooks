@@ -1,5 +1,7 @@
 # FreeBooks
 
+[![PyPI version](https://badge.fury.io/py/freebooks.svg)](https://pypi.org/project/freebooks/)
+
 FreeBooks is a command-line tool for converting Audible AAX files into common audio formats (MP3, M4A, FLAC, WAV, Opus). It bundles all required tables and binaries (including `rcrack`) and exposes a simple `freebooks` CLI.
 
 ## Features
