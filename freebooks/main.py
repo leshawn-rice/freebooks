@@ -262,10 +262,9 @@ def convert_file(input_path, output_path, activation_code, file_type=None):
         f"Successfully converted '{input_path}' to '{output_path}'")
 
 
-def main():
+def process_conversion(args: argparse.Namespace):
     check_external_tools()
 
-    args = parse_cli_arguments()
     global log
     log = ConsoleLogger(verbose=args.verbose)
 
@@ -280,6 +279,22 @@ def main():
     activation_code = get_activation_code(input_path, checksum)
 
     convert_file(input_path, output_path, activation_code, args.output_type)
+
+
+def convert_aax_to_audio(input_file: str = None, output_file: str = "output.mp3", output_type: str = "mp3", force: bool = False, verbose: bool = False):
+    args = argparse.Namespace(
+        filename=input_file,
+        output_file=output_file,
+        output_type=output_type,
+        force=force,
+        verbose=verbose,
+    )
+    process_conversion(args)
+
+
+def main():
+    args = parse_cli_arguments()
+    process_conversion(args)
 
 
 if __name__ == "__main__":
