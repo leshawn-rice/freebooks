@@ -156,10 +156,9 @@ def get_activation_code(path, checksum):
         If rcrack invocation or parsing fails.
     """
     log.debug(f"Preparing to generate activation code for file: {path}")
-    path_directory = os.path.dirname(path)
     rcrack_dir = os.path.dirname(os.path.abspath(rcrack))
 
-    rcrack_cmd = [rcrack, path_directory, "-h", checksum]
+    rcrack_cmd = [rcrack, rcrack_dir, "-h", checksum]
     grep_cmd = ["/usr/bin/grep", "hex"]
     awk_cmd = ["/usr/bin/awk", "-Fhex:", "{print $2}"]
 
