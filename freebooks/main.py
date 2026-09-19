@@ -2,6 +2,8 @@ import os
 import sys
 import argparse
 import subprocess as sp
+from freebooks.aax import read_file_checksum
+from freebooks.ffmpeg import get_ffmpeg
 from freebooks.logger import ConsoleLogger
 from pathlib import Path
 
@@ -12,18 +14,23 @@ log = ConsoleLogger()
 
 
 def check_external_tools():
-    """Ensure required binaries exist in /usr/local/bin and are executable."""
+    """Ensure the binaries FreeBooks relies on are present and executable."""
     missing = []
-    for exe in ("ffmpeg", "awk", "grep", "ffprobe"):
-        path = Path("/usr/bin") / exe
-        if not (path.is_file() and os.access(path, os.X_OK)):
-            missing.append(str(path))
-    if missing:
-        log.error(
-            "Missing required external tools:\n  %s\n"
-            "Please install them and ensure they are executable.",
-            "\n  ".join(missing),
+
+    try:
+        ffmpeg = get_ffmpeg()
+    except RuntimeError as exc:
+        missing.append(str(exc))
+    else:
+        log.debug(f"Using ffmpeg binary: {ffmpeg}")
+
+    if not (os.path.isfile(rcrack) and os.access(rcrack, os.X_OK)):
+        missing.append(
+            f"The bundled rcrack binary at {rcrack} is missing or not executable."
         )
+
+    if missing:
+        log.error("Missing required tools:\n  %s", "\n  ".join(missing))
         sys.exit(1)
 
 
@@ -101,9 +108,38 @@ def get_input_path(filename):
     return path
 
 
+def _checksum_via_ffmpeg(path):
+    """
+    Fall back to ffmpeg to report the AAX checksum.
+
+    ffmpeg logs ``[aax] file checksum == <hex>`` on stderr while probing an AAX
+    file, and exits non-zero because no activation bytes were supplied.
+
+    :param path: str
+        The absolute or relative path to the input audio file.
+    :returns: Optional[str]
+        The checksum value, or None if ffmpeg did not report one.
+    """
+    ffmpeg_cmd = [get_ffmpeg(), "-hide_banner", "-i", path]
+    log.debug(f"Falling back to ffmpeg for checksum: {' '.join(ffmpeg_cmd)}")
+
+    probe = sp.run(ffmpeg_cmd, stdout=sp.DEVNULL,
+                   stderr=sp.PIPE, check=False)
+    output = probe.stderr.decode(errors="replace")
+
+    for line in output.splitlines():
+        if "checksum" in line and "==" in line:
+            return line.split("==", 1)[1].strip()
+
+    return None
+
+
 def get_file_checksum(path):
     """
-    Extract the checksum tag from an audio file using ffprobe, grep, and awk.
+    Extract the checksum tag from an AAX file.
+
+    The checksum is read straight out of the container's adrm atom; ffmpeg is
+    only consulted if that fails.
 
     :param path: str
         The absolute or relative path to the input audio file.
@@ -114,32 +150,47 @@ def get_file_checksum(path):
     """
     log.debug(f"Starting checksum extraction for file: {path}")
 
-    ffprobe_cmd = ["/usr/bin/ffprobe", path]
-    grep_cmd = ["/usr/bin/grep",    "checksum"]
-    awk_cmd = ["/usr/bin/awk",     "-F==", "{print $2}"]
-
     try:
-        log.debug(f"Running ffprobe: {' '.join(ffprobe_cmd)}")
-        ffprobe = sp.Popen(ffprobe_cmd, stdout=sp.PIPE, stderr=sp.STDOUT)
-
-        log.debug(f"Piping ffprobe output to grep: {' '.join(grep_cmd)}")
-        grep = sp.Popen(grep_cmd, stdin=ffprobe.stdout, stdout=sp.PIPE)
-        ffprobe.stdout.close()
-
-        log.debug(f"Piping grep output to awk: {' '.join(awk_cmd)}")
-        checksum_bytes = sp.check_output(awk_cmd, stdin=grep.stdout)
-        grep.stdout.close()
-
-    except sp.CalledProcessError as cpe:
-        log.error(f"Subprocess failed (return code {cpe.returncode}): {cpe}")
-        raise RuntimeError(f"Failed to extract checksum for {path}") from cpe
+        checksum = read_file_checksum(path)
+    except OSError as exc:
+        log.error(f"Could not read {path}: {exc}")
+        raise RuntimeError(f"Failed to extract checksum for {path}") from exc
     except Exception as exc:
-        log.error(f"Unexpected error during checksum extraction: {exc}")
-        raise RuntimeError(f"Error extracting checksum for {path}") from exc
+        log.debug(f"adrm parsing failed ({exc}); trying ffmpeg")
+        checksum = None
 
-    checksum = checksum_bytes.decode().strip()
+    if not checksum:
+        log.debug(f"No adrm atom found in {path}; trying ffmpeg")
+        try:
+            checksum = _checksum_via_ffmpeg(path)
+        except Exception as exc:
+            log.error(f"Unexpected error during checksum extraction: {exc}")
+            raise RuntimeError(f"Error extracting checksum for {path}") from exc
+
+    if not checksum:
+        log.error(f"No AAX checksum found in {path}")
+        raise RuntimeError(f"Failed to extract checksum for {path}")
+
     log.info(f"Checksum for {path}: {checksum}")
     return checksum
+
+
+def parse_activation_code(output):
+    """
+    Pull the activation code out of rcrack's output.
+
+    :param output: str
+        The raw stdout captured from rcrack.
+    :returns: Optional[str]
+        The activation code, or None if rcrack reported no match.
+    """
+    for line in output.splitlines():
+        if "hex:" not in line:
+            continue
+        candidate = line.split("hex:", 1)[1].strip()
+        if candidate:
+            return candidate
+    return None
 
 
 def get_activation_code(path, checksum):
@@ -159,8 +210,6 @@ def get_activation_code(path, checksum):
     rcrack_dir = os.path.dirname(os.path.abspath(rcrack))
 
     rcrack_cmd = [rcrack, rcrack_dir, "-h", checksum]
-    grep_cmd = ["/usr/bin/grep", "hex"]
-    awk_cmd = ["/usr/bin/awk", "-Fhex:", "{print $2}"]
 
     log.debug(f"rcrack binary directory: {rcrack_dir}")
     log.debug(f"rcrack command: {' '.join(rcrack_cmd)}")
@@ -171,14 +220,7 @@ def get_activation_code(path, checksum):
         log.debug(f"Changed working directory to rcrack_dir: {rcrack_dir}")
 
         log.debug("Running rcrack")
-        proc_rcrack = sp.Popen(rcrack_cmd, stdout=sp.PIPE, stderr=sp.PIPE)
-        proc_grep = sp.Popen(
-            grep_cmd, stdin=proc_rcrack.stdout, stdout=sp.PIPE)
-        proc_rcrack.stdout.close()
-
-        log.debug(f"Filtering rcrack output with grep: {' '.join(grep_cmd)}")
-        activation_bytes = sp.check_output(awk_cmd, stdin=proc_grep.stdout)
-        proc_grep.stdout.close()
+        result = sp.run(rcrack_cmd, stdout=sp.PIPE, stderr=sp.PIPE, check=True)
 
     except sp.CalledProcessError as cpe:
         log.error(f"Subprocess error (code {cpe.returncode}): {cpe}")
@@ -192,7 +234,11 @@ def get_activation_code(path, checksum):
         os.chdir(current_dir)
         log.debug(f"Restored working directory to: {current_dir}")
 
-    activation_code = activation_bytes.decode().strip()
+    activation_code = parse_activation_code(result.stdout.decode(errors="replace"))
+    if not activation_code:
+        log.error(f"rcrack did not return an activation code for {path}")
+        raise RuntimeError(f"Failed to parse activation code for {path}")
+
     log.info(f"Generated activation code for {path}: {activation_code}")
     return activation_code
 
@@ -230,9 +276,19 @@ def convert_file(input_path, output_path, activation_code, file_type=None):
         'wav':  'pcm_s16le',
     }
 
+    # libopus rejects quality-based encoding, and the lossless codecs ignore it
+    quality_map = {
+        'mp3':  ["-q:a", "2"],
+        'm4a':  ["-q:a", "2"],
+        'aac':  ["-q:a", "2"],
+        'opus': ["-b:a", "64k"],
+        'flac': [],
+        'wav':  [],
+    }
+
     # build ffmpeg command
     ffmpeg_cmd = [
-        "ffmpeg",
+        get_ffmpeg(),
         "-y",  # overwrite without asking
         "-activation_bytes", activation_code,
         "-i", input_path,
@@ -241,8 +297,9 @@ def convert_file(input_path, output_path, activation_code, file_type=None):
 
     if ext in codec_map:
         codec = codec_map[ext]
+        quality_args = quality_map.get(ext, [])
         log.debug(f"Using codec '{codec}' for format '{ext}'")
-        ffmpeg_cmd += ["-c:a", codec, "-q:a", "2"]
+        ffmpeg_cmd += ["-c:a", codec] + quality_args
     else:
         log.warning(f"No codec mapping for '{ext}'; using ffmpeg defaults")
 

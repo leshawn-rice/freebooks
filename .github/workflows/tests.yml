@@ -1,0 +1,83 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  tests:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.8", "3.10", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+
+      - name: Report the ffmpeg FreeBooks resolves
+        run: python -c "from freebooks.ffmpeg import find_ffmpeg; print(find_ffmpeg())"
+
+      - name: Run tests
+        run: python -m unittest discover -s tests -v
+
+  bundled-ffmpeg:
+    name: Bundled ffmpeg fallback
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+
+      # Hide every binary on PATH so the bundled imageio-ffmpeg build is the
+      # only ffmpeg FreeBooks can find. Python is invoked by absolute path.
+      - name: Run tests without a system ffmpeg
+        run: |
+          PYTHON=$(which python)
+          mkdir -p "$RUNNER_TEMP/empty-path"
+          env PATH="$RUNNER_TEMP/empty-path" "$PYTHON" -c \
+            "from freebooks.ffmpeg import find_ffmpeg; exe = find_ffmpeg(); print(exe); assert exe and 'imageio_ffmpeg' in exe, 'expected the bundled build'"
+          env PATH="$RUNNER_TEMP/empty-path" "$PYTHON" -m unittest discover -s tests -v
+
+  no-ffmpeg:
+    name: No ffmpeg at all
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install without the bundled ffmpeg
+        run: |
+          python -m pip install --upgrade pip
+          pip install --no-deps -e .
+
+      # Nothing to convert with: the suite must skip, not fail.
+      - name: Run tests with no ffmpeg available
+        run: |
+          PYTHON=$(which python)
+          mkdir -p "$RUNNER_TEMP/empty-path"
+          env PATH="$RUNNER_TEMP/empty-path" "$PYTHON" -m unittest discover -s tests -v
