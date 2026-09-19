@@ -35,7 +35,7 @@ FreeBooks looks for ffmpeg in this order: `$FREEBOOKS_FFMPEG`, any `ffmpeg` on y
 Install with pip:
 
 ```bash
-pip install freebooks
+pip install freebooks 
 ```
 
 Or, to build and install from source:
