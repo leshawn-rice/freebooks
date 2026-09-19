@@ -1,4 +1,4 @@
-__version__ = "0.1.4"
+__version__ = "1.0.0"
 from freebooks.main import convert_aax_to_audio
 
 # This allows users to import convert_aax_to_audio directly from freebooks
